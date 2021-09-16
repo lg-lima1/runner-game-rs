@@ -1,4 +1,4 @@
-So...this project is about a runner game app I saw on Intagram other day.
+So...this project is about a runner game app I saw on Instagram other day.
 
 # Description
 Basically, the whole game is made round by round. In the first round you get for free a small amount of "people". 
@@ -9,10 +9,3 @@ The amount of bad people you encounter is subtracted from your current amount.
 If, after the encounter, your amount is below 1, you lose. 
 If is above, another round starts. 
 So the objective is to pass through the portal that helps you not to lose.
-
-# Tasks
-- [ ] Parse user input
-- [ ] Game state loop
-- [ ] Basic operations (add, ...)
-- [ ] Encounters
-- [ ] Difficulty build-up
