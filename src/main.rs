@@ -1,43 +1,10 @@
-extern crate rand;
-// import commonly used items from the prelude:
-use rand::prelude::*;
+use std::process;
 
 fn main() {
-    // We can use random() immediately. It can produce values of many common types:
-    let x: u8 = random();
-    println!("{}", x);
+    println!("Welcome to runner game!");
 
-    if random() {
-        // generates a boolean
-        println!("Heads!");
+    if let Err(e) = runner_game::run() {
+        eprintln!("Application error : {}", e);
+        process::exit(1);
     }
-
-    // If we want to be a bit more explicit (and a little more efficient) we can
-    // make a handle to the thread-local generator:
-    let mut rng = thread_rng();
-    if rng.gen() {
-        // random bool
-        let x: f64 = rng.gen(); // random number in range [0, 1)
-        let y = rng.gen_range(-10.0..10.0);
-        println!("x is: {}", x);
-        println!("y is: {}", y);
-    }
-
-    println!("Die roll: {}", rng.gen_range(1..=6));
-    println!("Number from 0 to 9: {}", rng.gen_range(0..10));
-    // Sometimes it's useful to use distributions directly:
-    let distr = rand::distributions::Uniform::new_inclusive(1, 100);
-    let mut nums = [0i32; 3];
-    for x in &mut nums {
-        *x = rng.sample(distr);
-    }
-    println!("Some numbers: {:?}", nums);
-
-    // We can also interact with iterators and slices:
-    let direction = "➡⬈⬆⬉⬅⬋⬇⬊".chars().choose(&mut rng).unwrap();
-    println!("Lets go in this direction: {}", direction);
-
-    let mut nums = [1, 2, 3, 4, 5];
-    nums.shuffle(&mut rng);
-    println!("I shuffled my {:?}", nums);
 }
