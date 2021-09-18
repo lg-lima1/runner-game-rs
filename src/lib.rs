@@ -2,21 +2,72 @@ use rand::prelude::*;
 use std::error::Error;
 use std::io;
 
+pub enum Difficulty {
+    Easy,
+    Medium,
+    Hard,
+}
+
+impl Difficulty {
+    pub fn from(arg: &str) -> Result<Difficulty, &str> {
+        let arg = arg.to_lowercase();
+        match &arg[..] {
+            "easy" => Ok(Difficulty::Easy),
+            "medium" => Ok(Difficulty::Medium),
+            "hard" => Ok(Difficulty::Hard),
+            _ => Err("{} is not a difficulty"),
+        }
+    }
+}
+
+pub struct Config {
+    difficulty: Difficulty,
+}
+
+pub fn config(args: &[String]) -> Result<Config, &str> {
+    fn print_args() {
+        println!(
+            "\
+Usage:
+\trunner_game [difficulty]
+-----
+Where:
+\tdifficulty - Easy, Medium, Hard
+"
+        );
+    }
+
+    if args.len() < 2 {
+        print_args();
+        return Err("not enough arguments");
+    }
+
+    if args.len() > 2 {
+        print_args();
+        return Err("too much arguments");
+    }
+
+    let difficulty = Difficulty::from(&args[1])?;
+
+    Ok(Config { difficulty })
+}
+
 #[derive(Debug)]
-enum Operation {
+pub enum Operation {
     Add(i32),
     Subtract(i32),
     Multiply(i32),
     Divide(i32),
 }
 
-struct Engine {
+pub struct Engine {
     soldiers: i32,
     bad_soldiers: i32,
+    difficulty: Difficulty,
 }
 
 impl Engine {
-    pub fn new() -> Engine {
+    pub fn new(difficulty: Difficulty) -> Engine {
         let mut rng = thread_rng();
         let soldiers = rng.gen_range(10..20);
         let bad_soldiers = rng.gen_range((soldiers + 1)..(soldiers * 2));
@@ -30,6 +81,7 @@ impl Engine {
         Engine {
             soldiers,
             bad_soldiers,
+            difficulty,
         }
     }
 
@@ -165,8 +217,8 @@ impl Engine {
     }
 }
 
-pub fn run() -> Result<(), Box<dyn Error>> {
-    let mut game = Engine::new();
+pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
+    let mut game = Engine::new(config.difficulty);
     loop {
         let operation = game.select_operation()?;
         game.apply_operation(operation);
@@ -184,14 +236,14 @@ mod test {
 
     #[test]
     fn new_game() {
-        let game = Engine::new();
+        let game = Engine::new(Difficulty::Easy);
         assert!(game.soldiers >= 10 && game.soldiers < 20);
         assert!(game.bad_soldiers > game.soldiers && game.bad_soldiers < game.soldiers * 2);
     }
 
     #[test]
     fn winable_path() {
-        let mut game = Engine::new();
+        let mut game = Engine::new(Difficulty::Easy);
         let operation = game.operation(true);
         println!("operation: {:?}", operation);
         game.apply_operation(operation);
@@ -201,7 +253,7 @@ mod test {
 
     #[test]
     fn losable_path() {
-        let mut game = Engine::new();
+        let mut game = Engine::new(Difficulty::Easy);
         let operation = game.operation(false);
         println!("operation: {:?}", operation);
         game.apply_operation(operation);
@@ -211,7 +263,7 @@ mod test {
 
     #[test]
     fn add_to_win() {
-        let mut game = Engine::new();
+        let mut game = Engine::new(Difficulty::Easy);
         let operation = game.add(true);
         println!("operation: {:?}", operation);
         game.apply_operation(operation);
@@ -221,7 +273,7 @@ mod test {
 
     #[test]
     fn add_to_lose() {
-        let mut game = Engine::new();
+        let mut game = Engine::new(Difficulty::Easy);
         let operation = game.add(false);
         println!("operation: {:?}", operation);
         game.apply_operation(operation);
@@ -231,7 +283,7 @@ mod test {
 
     #[test]
     fn subtract_to_win() {
-        let mut game = Engine::new();
+        let mut game = Engine::new(Difficulty::Easy);
         let operation = game.subtract(true);
         println!("operation: {:?}", operation);
         game.apply_operation(operation);
@@ -241,7 +293,7 @@ mod test {
 
     #[test]
     fn subtract_to_lose() {
-        let mut game = Engine::new();
+        let mut game = Engine::new(Difficulty::Easy);
         let operation = game.subtract(false);
         println!("operation: {:?}", operation);
         game.apply_operation(operation);
@@ -251,7 +303,7 @@ mod test {
 
     #[test]
     fn multiply_to_win() {
-        let mut game = Engine::new();
+        let mut game = Engine::new(Difficulty::Easy);
         let operation = game.multiply(true);
         println!("operation: {:?}", operation);
         game.apply_operation(operation);
@@ -261,7 +313,7 @@ mod test {
 
     #[test]
     fn multiply_to_lose() {
-        let mut game = Engine::new();
+        let mut game = Engine::new(Difficulty::Easy);
         let operation = game.multiply(false);
         println!("operation: {:?}", operation);
         game.apply_operation(operation);
@@ -271,7 +323,7 @@ mod test {
 
     #[test]
     fn divide_to_lose() {
-        let mut game = Engine::new();
+        let mut game = Engine::new(Difficulty::Easy);
         let operation = game.divide_to_lose();
         println!("operation: {:?}", operation);
         game.apply_operation(operation);
