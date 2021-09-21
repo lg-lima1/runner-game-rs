@@ -15,7 +15,7 @@ impl Difficulty {
             "easy" => Ok(Difficulty::Easy),
             "medium" => Ok(Difficulty::Medium),
             "hard" => Ok(Difficulty::Hard),
-            _ => Err("{} is not a difficulty"),
+            _ => Err("not a difficulty"),
         }
     }
 }
@@ -52,7 +52,7 @@ Where:
     Ok(Config { difficulty })
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub enum Operation {
     Add(i32),
     Subtract(i32),
@@ -148,39 +148,56 @@ impl Engine {
         }
     }
 
-    fn randomize_paths(&self) -> (Operation, Operation) {
-        let win = self.operation(true);
-        let lose = self.operation(false);
+    fn randomize_paths(&self) -> Vec<Operation> {
+        let size = match self.difficulty {
+            Difficulty::Easy => 2,
+            Difficulty::Medium => 3,
+            Difficulty::Hard => 4,
+        };
+
+        let mut paths = match self.difficulty {
+            Difficulty::Easy => vec![self.operation(false)],
+            Difficulty::Medium => vec![self.operation(false), self.operation(false)],
+            Difficulty::Hard => vec![
+                self.operation(false),
+                self.operation(false),
+                self.operation(false),
+            ],
+        };
 
         let mut rng = thread_rng();
-        if rng.gen() {
-            (win, lose)
-        } else {
-            (lose, win)
-        }
+        let index = rng.gen_range(0..size);
+        paths.insert(index, self.operation(true));
+        paths
     }
 
-    pub fn select_operation(&self) -> Result<Operation, &str> {
+    pub fn select_operation(&self) -> Operation {
         let paths = self.randomize_paths();
 
         println!("Which path will you take?");
-        println!("1:\t{:?}", paths.0);
-        println!("2:\t{:?}", paths.1);
+        println!("1:\t{:?}", paths[0]);
+        println!("2:\t{:?}", paths[1]);
+        if paths.len() > 2 {
+            println!("3:\t{:?}", paths[2]);
+        }
+
+        if paths.len() > 3 {
+            println!("4:\t{:?}", paths[3]);
+        }
 
         let mut option = String::new();
         io::stdin()
             .read_line(&mut option)
             .expect("Failed to read line.");
 
-        let option: u8 = option.trim_end().parse().unwrap();
+        let option: usize = option
+            .trim_end()
+            .parse()
+            .expect("Failed to parse input number.");
 
-        if option > 2 || option == 0 {
-            return Err("User input does not match given options");
-        }
+        let chosen_path = paths.get(option - 1).expect("Index out of range").clone();
 
-        let chosen_path = if option == 1 { paths.0 } else { paths.1 };
-
-        Ok(chosen_path)
+        chosen_path
     }
 
     pub fn apply_operation(&mut self, operation: Operation) {
@@ -220,7 +237,7 @@ impl Engine {
 pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
     let mut game = Engine::new(config.difficulty);
     loop {
-        let operation = game.select_operation()?;
+        let operation = game.select_operation();
         game.apply_operation(operation);
         let result = game.fight_war();
         if result {
