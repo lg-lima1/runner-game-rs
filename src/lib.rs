@@ -176,8 +176,8 @@ impl Engine {
         if paths.len() == Difficulty::Medium.to_usize() {
             println!("3:\t{:?}", paths[2]);
         }
-
         if paths.len() == Difficulty::Hard.to_usize() {
+            println!("3:\t{:?}", paths[2]);
             println!("4:\t{:?}", paths[3]);
         }
 
