@@ -5,7 +5,7 @@ fn main() {
     let args: Vec<_> = env::args().collect();
 
     let config = runner_game::config(&args).unwrap_or_else(|err| {
-        eprintln!("Problem parsing arguments: {}", err);
+        eprintln!("Arguments error: {}", err);
         process::exit(1);
     });
 

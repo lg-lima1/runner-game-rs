@@ -1,5 +1,4 @@
 use rand::prelude::*;
-use std::error::Error;
 use std::io;
 
 pub enum Difficulty {
@@ -16,6 +15,14 @@ impl Difficulty {
             "medium" => Ok(Difficulty::Medium),
             "hard" => Ok(Difficulty::Hard),
             _ => Err("not a difficulty"),
+        }
+    }
+
+    pub fn to_usize(&self) -> usize {
+        match self {
+            Difficulty::Easy => 2,
+            Difficulty::Medium => 3,
+            Difficulty::Hard => 4,
         }
     }
 }
@@ -149,21 +156,9 @@ impl Engine {
     }
 
     fn randomize_paths(&self) -> Vec<Operation> {
-        let size = match self.difficulty {
-            Difficulty::Easy => 2,
-            Difficulty::Medium => 3,
-            Difficulty::Hard => 4,
-        };
+        let size = self.difficulty.to_usize();
 
-        let mut paths = match self.difficulty {
-            Difficulty::Easy => vec![self.operation(false)],
-            Difficulty::Medium => vec![self.operation(false), self.operation(false)],
-            Difficulty::Hard => vec![
-                self.operation(false),
-                self.operation(false),
-                self.operation(false),
-            ],
-        };
+        let mut paths = vec![self.operation(false); size - 1];
 
         let mut rng = thread_rng();
         let index = rng.gen_range(0..size);
@@ -171,33 +166,39 @@ impl Engine {
         paths
     }
 
-    pub fn select_operation(&self) -> Operation {
+    pub fn select_operation(&self) -> Result<Operation, &str> {
         let paths = self.randomize_paths();
 
         println!("Which path will you take?");
         println!("1:\t{:?}", paths[0]);
         println!("2:\t{:?}", paths[1]);
-        if paths.len() > 2 {
+
+        if paths.len() == Difficulty::Medium.to_usize() {
             println!("3:\t{:?}", paths[2]);
         }
 
-        if paths.len() > 3 {
+        if paths.len() == Difficulty::Hard.to_usize() {
             println!("4:\t{:?}", paths[3]);
         }
 
         let mut option = String::new();
-        io::stdin()
-            .read_line(&mut option)
-            .expect("Failed to read line.");
+        if let Err(_) = io::stdin().read_line(&mut option) {
+            return Err("Failed to read line.");
+        }
 
-        let option: usize = option
-            .trim_end()
-            .parse()
-            .expect("Failed to parse input number.");
+        let option = option.trim_end().parse::<usize>();
+        let option = match option {
+            Ok(x) => x,
+            Err(_) => return Err("Failed to parse input number."),
+        };
 
-        let chosen_path = paths.get(option - 1).expect("Index out of range").clone();
+        let chosen_path = paths.get(option - 1);
+        let chosen_path = match chosen_path {
+            Some(x) => x,
+            None => return Err("Index out of range"),
+        };
 
-        chosen_path
+        Ok(chosen_path.clone())
     }
 
     pub fn apply_operation(&mut self, operation: Operation) {
@@ -234,14 +235,14 @@ impl Engine {
     }
 }
 
-pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
+pub fn run(config: Config) -> Result<(), String> {
     let mut game = Engine::new(config.difficulty);
     loop {
-        let operation = game.select_operation();
+        let operation = game.select_operation()?;
         game.apply_operation(operation);
-        let result = game.fight_war();
-        if result {
-            return Ok(());
+        let did_lose = game.fight_war();
+        if did_lose {
+            return Err("Game lost! Try again.".to_string());
         }
         game.new_encounter();
     }
@@ -256,6 +257,27 @@ mod test {
         let game = Engine::new(Difficulty::Easy);
         assert!(game.soldiers >= 10 && game.soldiers < 20);
         assert!(game.bad_soldiers > game.soldiers && game.bad_soldiers < game.soldiers * 2);
+    }
+
+    #[test]
+    fn new_game_easy() {
+        let game = Engine::new(Difficulty::Easy);
+        let paths = game.randomize_paths();
+        assert_eq!(paths.len(), 2);
+    }
+
+    #[test]
+    fn new_game_medium() {
+        let game = Engine::new(Difficulty::Medium);
+        let paths = game.randomize_paths();
+        assert_eq!(paths.len(), 3);
+    }
+
+    #[test]
+    fn new_game_hard() {
+        let game = Engine::new(Difficulty::Hard);
+        let paths = game.randomize_paths();
+        assert_eq!(paths.len(), 4);
     }
 
     #[test]
