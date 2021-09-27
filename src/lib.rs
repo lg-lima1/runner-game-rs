@@ -75,9 +75,8 @@ pub struct Engine {
 
 impl Engine {
     pub fn new(difficulty: Difficulty) -> Engine {
-        let mut rng = thread_rng();
-        let soldiers = rng.gen_range(10..20);
-        let bad_soldiers = rng.gen_range((soldiers + 1)..(soldiers * 2));
+        let soldiers = thread_rng().gen_range(10..20);
+        let bad_soldiers = thread_rng().gen_range((soldiers + 1)..(soldiers * 2));
 
         println!("Your army has {} soldiers.", soldiers);
         println!(
@@ -93,90 +92,81 @@ impl Engine {
     }
 
     fn add(&self, should_win: bool) -> Operation {
-        let mut rng = thread_rng();
         let test = self.bad_soldiers - self.soldiers; // 10 = 20 - 10
         let value = if should_win {
-            rng.gen_range((test + 1)..=(test * 5)) // 11 <= x <= 50
+            thread_rng().gen_range((test + 1)..=(test * 5)) // 11 <= x <= 50
         } else {
-            rng.gen_range((test * -5)..test) // -50 <= x < 10
+            thread_rng().gen_range((test * -5)..test) // -50 <= x < 10
         };
         Operation::Add(value)
     }
 
     fn subtract(&self, should_win: bool) -> Operation {
-        let mut rng = thread_rng();
         let test = self.soldiers - self.bad_soldiers; // -10 =  10 - 20
         let value = if should_win {
-            rng.gen_range((test * 5)..=(test - 1)) // -50 <= x <= -11
+            thread_rng().gen_range((test * 5)..=(test - 1)) // -50 <= x <= -11
         } else {
-            rng.gen_range(test..(test * -5)) // -10 <= x < 50
+            thread_rng().gen_range(test..(test * -5)) // -10 <= x < 50
         };
         Operation::Subtract(value)
     }
 
     fn multiply(&self, should_win: bool) -> Operation {
-        let mut rng = thread_rng();
         let test = self.bad_soldiers as f32 / self.soldiers as f32; // 2 = 20 / 10
         let test = test.ceil() as i32;
         let value = if should_win {
-            rng.gen_range((test + 1)..=(test + 10)) // 3 <= x <= 12
+            thread_rng().gen_range((test + 1)..=(test + 10)) // 3 <= x <= 12
         } else {
-            rng.gen_range((test - 10)..test) // -8 <= x < 2
+            thread_rng().gen_range((test - 10)..test) // -8 <= x < 2
         };
         Operation::Multiply(value)
     }
 
-    fn divide_to_lose(&self) -> Operation {
-        let mut rng = thread_rng();
+    fn divide(&self, _should_win: bool) -> Operation {
         let test = self.bad_soldiers as f32 / self.soldiers as f32; // 2 = 20 / 10
         let test = test.ceil() as i32;
-        let value = rng.gen_range((test + 1)..=(test + 10)); // 3 <= x <= 12
+        let value = thread_rng().gen_range((test + 1)..=(test + 10)); // 3 <= x <= 12
         Operation::Divide(value)
     }
 
     fn operation(&self, should_win: bool) -> Operation {
-        let mut rng = thread_rng();
-        if rng.gen() {
-            if rng.gen() {
-                self.add(should_win)
-            } else {
-                self.subtract(should_win)
-            }
-        } else {
-            if should_win {
-                self.multiply(true)
-            } else {
-                if rng.gen() {
-                    self.multiply(false)
-                } else {
-                    self.divide_to_lose()
-                }
-            }
-        }
+        let op = [
+            Engine::add,
+            Engine::subtract,
+            Engine::multiply,
+            Engine::divide,
+        ];
+        let coerce = if should_win { 3 } else { 4 };
+        let index = thread_rng().gen_range(0..coerce);
+        let operation = op[index];
+        operation(self, should_win)
     }
 
     fn randomize_paths(&self) -> Vec<Operation> {
+        let mut paths = vec![
+            self.operation(false),
+            self.operation(false),
+            self.operation(false),
+        ];
+
         let size = self.difficulty.to_usize();
-
-        let mut paths = vec![self.operation(false); size - 1];
-
-        let mut rng = thread_rng();
-        let index = rng.gen_range(0..size);
+        let index = thread_rng().gen_range(0..size);
         paths.insert(index, self.operation(true));
         paths
     }
 
     pub fn select_operation(&self) -> Result<Operation, &str> {
         let paths = self.randomize_paths();
+        let u_diff = self.difficulty.to_usize();
 
         println!("Which path will you take?");
         println!("1:\t{:?}", paths[0]);
         println!("2:\t{:?}", paths[1]);
 
-        if paths.len() == Difficulty::Medium.to_usize() {
+        if u_diff == Difficulty::Medium.to_usize() {
             println!("3:\t{:?}", paths[2]);
         }
-        if paths.len() == Difficulty::Hard.to_usize() {
+        if u_diff == Difficulty::Hard.to_usize() {
             println!("3:\t{:?}", paths[2]);
             println!("4:\t{:?}", paths[3]);
         }
@@ -192,11 +182,11 @@ impl Engine {
             Err(_) => return Err("Failed to parse input number."),
         };
 
-        let chosen_path = paths.get(option - 1);
-        let chosen_path = match chosen_path {
-            Some(x) => x,
-            None => return Err("Index out of range"),
-        };
+        if option > u_diff || option <= 0 {
+            return Err("index out of range.");
+        }
+
+        let chosen_path = paths.get(option - 1).unwrap();
 
         Ok(chosen_path.clone())
     }
@@ -224,8 +214,7 @@ impl Engine {
     }
 
     pub fn new_encounter(&mut self) {
-        let mut rng = thread_rng();
-        self.bad_soldiers = rng.gen_range((self.soldiers + 1)..((self.soldiers + 1) * 2));
+        self.bad_soldiers = thread_rng().gen_range((self.soldiers + 1)..((self.soldiers + 1) * 2));
 
         println!("As you walk through the field, another enemy group approaches! \u{1F630} \u{1F630} \u{1F630}");
         println!(
@@ -262,22 +251,22 @@ mod test {
     #[test]
     fn new_game_easy() {
         let game = Engine::new(Difficulty::Easy);
-        let paths = game.randomize_paths();
-        assert_eq!(paths.len(), 2);
+        let difficulty = game.difficulty.to_usize();
+        assert_eq!(difficulty, 2);
     }
 
     #[test]
     fn new_game_medium() {
         let game = Engine::new(Difficulty::Medium);
-        let paths = game.randomize_paths();
-        assert_eq!(paths.len(), 3);
+        let difficulty = game.difficulty.to_usize();
+        assert_eq!(difficulty, 3);
     }
 
     #[test]
     fn new_game_hard() {
         let game = Engine::new(Difficulty::Hard);
-        let paths = game.randomize_paths();
-        assert_eq!(paths.len(), 4);
+        let difficulty = game.difficulty.to_usize();
+        assert_eq!(difficulty, 4);
     }
 
     #[test]
@@ -363,7 +352,7 @@ mod test {
     #[test]
     fn divide_to_lose() {
         let mut game = Engine::new(Difficulty::Easy);
-        let operation = game.divide_to_lose();
+        let operation = game.divide(false);
         println!("operation: {:?}", operation);
         game.apply_operation(operation);
         println!("soldiers: {}", game.soldiers);
