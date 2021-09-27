@@ -9,8 +9,7 @@ pub enum Difficulty {
 
 impl Difficulty {
     pub fn from(arg: &str) -> Result<Difficulty, &str> {
-        let arg = arg.to_lowercase();
-        match &arg[..] {
+        match arg {
             "easy" => Ok(Difficulty::Easy),
             "medium" => Ok(Difficulty::Medium),
             "hard" => Ok(Difficulty::Hard),
@@ -31,7 +30,7 @@ pub struct Config {
     difficulty: Difficulty,
 }
 
-pub fn config(args: &[String]) -> Result<Config, &str> {
+pub fn config(args: Vec<String>) -> Result<Config, String> {
     fn print_args() {
         println!(
             "\
@@ -46,15 +45,15 @@ Where:
 
     if args.len() < 2 {
         print_args();
-        return Err("not enough arguments");
+        return Err("not enough arguments".to_string());
     }
 
     if args.len() > 2 {
         print_args();
-        return Err("too much arguments");
+        return Err("too much arguments".to_string());
     }
 
-    let difficulty = Difficulty::from(&args[1])?;
+    let difficulty = Difficulty::from(&args[1][..])?;
 
     Ok(Config { difficulty })
 }
@@ -200,17 +199,18 @@ impl Engine {
         }
     }
 
-    pub fn fight_war(&mut self) -> bool {
+    pub fn fight_war(&mut self) -> Result<(), &str> {
         self.soldiers -= self.bad_soldiers;
         if self.soldiers > 0 {
             println!(
-                "You won! Now your army have {} soldiers. \u{1F973}",
+                "You won! Now your army has {} soldiers. \u{1F973}",
                 self.soldiers
             );
         } else {
             println!("You lost! You should have taken another path. \u{2620}");
+            return Err("Game lost! Try again.");
         }
-        self.soldiers <= 0
+        Ok(())
     }
 
     pub fn new_encounter(&mut self) {
@@ -229,10 +229,7 @@ pub fn run(config: Config) -> Result<(), String> {
     loop {
         let operation = game.select_operation()?;
         game.apply_operation(operation);
-        let did_lose = game.fight_war();
-        if did_lose {
-            return Err("Game lost! Try again.".to_string());
-        }
+        game.fight_war()?;
         game.new_encounter();
     }
 }
