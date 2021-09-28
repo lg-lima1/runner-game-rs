@@ -1,3 +1,6 @@
+[![Build](https://github.com/lg-lima1/runner-game-rs/actions/workflows/rust.yml/badge.svg)](https://github.com/lg-lima1/runner-game-rs/actions/workflows/rust.yml)
+[![Test](https://github.com/lg-lima1/runner-game-rs/actions/workflows/test.yml/badge.svg)](https://github.com/lg-lima1/runner-game-rs/actions/workflows/test.yml)
+
 So...this project is about a runner game app I saw on Instagram other day.
 
 # Description

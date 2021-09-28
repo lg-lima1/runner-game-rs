@@ -3,7 +3,7 @@ on:
     tags:
     - 'v*'
 
-name: Build Rust executable
+name: Build Release
 
 env:
   CARGO_TERM_COLOR: always
